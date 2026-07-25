@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block auth_content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 animate-fade-in py-5">
+    <div class="container text-center position-relative z-index-1">
+        <h1 class="display-3 fw-bold text-white mb-4">AI-Powered Healthcare <br><span class="text-primary">Data Warehouse</span></h1>
+        <p class="lead text-light mb-5 max-w-2xl mx-auto">
+            Advanced Heart Disease Prediction System using Data Mining Techniques. 
+            Integrates Star Schema, ETL Pipelines, Machine Learning Classification, and Apriori Rule Mining.
+        </p>
+        
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-5 rounded-pill">Login to System</a>
+            <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg px-5 rounded-pill">Create Account</a>
+        </div>
+        
+        <div class="row mt-5 pt-5 text-start g-4 justify-content-center">
+            <div class="col-md-3">
+                <div class="glass-card p-4 h-100">
+                    <i class="fa-solid fa-database text-primary fs-1 mb-3"></i>
+                    <h5 class="fw-bold">Star Schema DW</h5>
+                    <p class="text-muted small mb-0">Robust Data Warehouse built with facts and dimension tables.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card p-4 h-100">
+                    <i class="fa-solid fa-brain text-success fs-1 mb-3"></i>
+                    <h5 class="fw-bold">Machine Learning</h5>
+                    <p class="text-muted small mb-0">Decision Trees, Naive Bayes, and Logistic Regression models.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card p-4 h-100">
+                    <i class="fa-solid fa-chart-line text-warning fs-1 mb-3"></i>
+                    <h5 class="fw-bold">Data Mining</h5>
+                    <p class="text-muted small mb-0">K-Means Clustering and Apriori Association Rules.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

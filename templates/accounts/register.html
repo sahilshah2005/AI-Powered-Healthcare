@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block auth_content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 animate-fade-in py-5">
+    <div class="glass-card p-5" style="max-width: 500px; width: 100%;">
+        <div class="text-center mb-4">
+            <h3 class="fw-bold text-white"><i class="fa-solid fa-user-plus text-primary me-2"></i>Create Account</h3>
+            <p class="text-muted">Register to access the Data Warehouse</p>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field|add_class:"form-control" }}
+                    {% if field.help_text %}
+                        <small class="text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary w-100 mb-3 mt-3">Register</button>
+            <p class="text-center text-muted small">
+                Already have an account? <a href="{% url 'login' %}" class="text-primary text-decoration-none">Login here</a>
+            </p>
+        </form>
+    </div>
+</div>
+{% endblock %}
