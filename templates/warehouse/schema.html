@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Data Warehouse Schema — AI Healthcare{% endblock %}
+
+{% block content %}
+<div class="container-fluid animate-fade-in">
+    <h2 class="fw-bold mb-4"><i class="fa-solid fa-database text-primary me-2"></i>Data Warehouse — Star Schema</h2>
+
+    <!-- Schema Overview -->
+    <div class="glass-card p-4 mb-4">
+        <h5 class="fw-bold mb-3">Star Schema Design</h5>
+        <p class="text-muted mb-4">The data warehouse uses a Star Schema design with a central fact table (<strong>PatientFact</strong>) linked to 8 dimension tables through foreign key relationships.</p>
+
+        <div class="text-center mb-4">
+            <div class="d-inline-block p-4 rounded-3 border border-primary bg-primary bg-opacity-10">
+                <h4 class="fw-bold text-primary mb-2"><i class="fa-solid fa-table me-2"></i>PatientFact</h4>
+                <p class="mb-0 text-muted">{{ schema_info.fact_table.record_count }} records</p>
+            </div>
+        </div>
+
+        <div class="row g-3 justify-content-center">
+            {% for dim in schema_info.dimensions %}
+            <div class="col-lg-3 col-md-6">
+                <div class="p-3 rounded-3 border border-info bg-info bg-opacity-10 h-100">
+                    <h6 class="fw-bold text-info mb-2"><i class="fa-solid fa-cube me-1"></i>{{ dim.name }}</h6>
+                    <p class="text-muted small mb-1">{{ dim.count }} values</p>
+                    <div>
+                        {% for val in dim.values %}
+                        <span class="badge bg-secondary bg-opacity-50 me-1 mb-1">{{ val }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Schema Diagram -->
+    <div class="glass-card p-4 mb-4">
+        <h5 class="fw-bold mb-3">Entity-Relationship Diagram</h5>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Table</th>
+                        <th>Type</th>
+                        <th>Relationship</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-active">
+                        <td><strong>PatientFact</strong></td>
+                        <td><span class="badge bg-primary">Fact</span></td>
+                        <td>Central table</td>
+                        <td>Patient health measurements &amp; target variable</td>
+                    </tr>
+                    <tr>
+                        <td>DimGender</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.gender_id → DimGender.id</td>
+                        <td>Male, Female</td>
+                    </tr>
+                    <tr>
+                        <td>DimAgeGroup</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.age_group_id → DimAgeGroup.id</td>
+                        <td>Age range categorization (Under 30, 30-39, ...)</td>
+                    </tr>
+                    <tr>
+                        <td>DimChestPainType</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.cp_type_id → DimChestPainType.id</td>
+                        <td>4 chest pain categories</td>
+                    </tr>
+                    <tr>
+                        <td>DimRestECG</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.rest_ecg_id → DimRestECG.id</td>
+                        <td>Resting ECG results</td>
+                    </tr>
+                    <tr>
+                        <td>DimCholesterolCategory</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.chol_category_id → DimCholesterolCategory.id</td>
+                        <td>Normal / Borderline High / High</td>
+                    </tr>
+                    <tr>
+                        <td>DimBPCategory</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.bp_category_id → DimBPCategory.id</td>
+                        <td>Normal / Elevated / High</td>
+                    </tr>
+                    <tr>
+                        <td>DimHeartRateCategory</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.hr_category_id → DimHeartRateCategory.id</td>
+                        <td>Low / Normal / High</td>
+                    </tr>
+                    <tr>
+                        <td>DimTime</td>
+                        <td><span class="badge bg-info">Dimension</span></td>
+                        <td>PatientFact.etl_time_id → DimTime.id</td>
+                        <td>ETL execution date with year/month/quarter</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Fact Table Fields -->
+    <div class="glass-card p-4">
+        <h5 class="fw-bold mb-3">Fact Table Fields</h5>
+        <div class="row g-2">
+            <div class="col-12">
+                <h6 class="text-muted mb-2">Foreign Keys (Dimensions)</h6>
+                <div class="mb-3">
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">gender → DimGender</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">age_group → DimAgeGroup</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">cp_type → DimChestPainType</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">rest_ecg → DimRestECG</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">chol_category → DimCholesterolCategory</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">bp_category → DimBPCategory</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">hr_category → DimHeartRateCategory</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info me-1 mb-1">etl_time → DimTime</span>
+                </div>
+                <h6 class="text-muted mb-2">Measures</h6>
+                <div class="mb-3">
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">age (int)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">trestbps (float)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">chol (float)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">fbs (bool)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">thalach (float)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">exang (bool)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">oldpeak (float)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">slope (int)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">ca (int)</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary me-1 mb-1">thal (int)</span>
+                </div>
+                <h6 class="text-muted mb-2">Target</h6>
+                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">target (bool) — Heart Disease Diagnosis</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

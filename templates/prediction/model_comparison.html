@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4" style="color: var(--text-light);">Model Comparison & Performance</h2>
+
+    {% if not metrics %}
+    <div class="alert alert-warning">
+        Models haven't been trained yet or metrics file is missing. Please run `python manage.py train_models`.
+    </div>
+    {% else %}
+    
+    <div class="glass-card p-4 mb-4">
+        <h4 class="mb-3" style="color: var(--text-light);">Performance Metrics</h4>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover text-center align-middle" style="background-color: transparent;">
+                <thead>
+                    <tr>
+                        <th class="text-start">Model</th>
+                        <th>Accuracy</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1 Score</th>
+                        <th>ROC-AUC</th>
+                        <th>CV Mean</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for model_name, data in metrics.items %}
+                    <tr>
+                        <td class="text-start fw-bold">{{ model_name }}</td>
+                        <td>{{ data.accuracy }}%</td>
+                        <td>{{ data.precision }}%</td>
+                        <td>{{ data.recall }}%</td>
+                        <td>{{ data.f1_score }}%</td>
+                        <td>{{ data.roc_auc }}%</td>
+                        <td>{{ data.cv_mean }}% ±{{ data.cv_std }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="glass-card p-4 h-100">
+                <h4 class="mb-3" style="color: var(--text-light);">Recommendation</h4>
+                <p style="color: var(--text-light);">Based on the current evaluation metrics, we look at primarily the F1 Score and Recall to minimize false negatives (which is crucial for heart disease detection).</p>
+                <div class="alert alert-info bg-dark text-info border-info mt-3">
+                    <strong>RandomForestClassifier</strong> is usually recommended as it handles non-linear relationships well and provides robust predictions on structured tabular data, often showing the most balanced F1 and Recall scores among standard models.
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="glass-card p-4 h-100">
+                <h4 class="mb-3" style="color: var(--text-light);">Model Metrics Overview</h4>
+                <canvas id="metricsChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card p-4 mb-4">
+        <h4 class="mb-3" style="color: var(--text-light);">Confusion Matrices</h4>
+        <div class="row">
+            {% for model_name, data in metrics.items %}
+            <div class="col-md-3 mb-3 text-center">
+                <h5 style="color: var(--text-light);">{{ model_name }}</h5>
+                <table class="table table-bordered table-dark table-sm mx-auto" style="width: 150px;">
+                    <tr>
+                        <td class="bg-success">{{ data.confusion_matrix.0.0 }}</td>
+                        <td class="bg-danger">{{ data.confusion_matrix.0.1 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="bg-danger">{{ data.confusion_matrix.1.0 }}</td>
+                        <td class="bg-success">{{ data.confusion_matrix.1.1 }}</td>
+                    </tr>
+                </table>
+                <small class="text-muted">TN | FP<br>FN | TP</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {{ metrics|json_script:"metrics-data" }}
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const metrics = JSON.parse(document.getElementById('metrics-data').textContent);
+            
+            const labels = Object.keys(metrics);
+            const accuracy = labels.map(l => metrics[l].accuracy);
+            const f1_score = labels.map(l => metrics[l].f1_score);
+            const recall = labels.map(l => metrics[l].recall);
+            
+            const ctx = document.getElementById('metricsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Accuracy',
+                            data: accuracy,
+                            backgroundColor: 'rgba(14, 165, 233, 0.6)'
+                        },
+                        {
+                            label: 'F1 Score',
+                            data: f1_score,
+                            backgroundColor: 'rgba(234, 179, 8, 0.6)'
+                        },
+                        {
+                            label: 'Recall',
+                            data: recall,
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f8fafc' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    
+    {% endif %}
+</div>
+{% endblock %}

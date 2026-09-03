@@ -1,0 +1,81 @@
+{% load static %}
+<div class="mb-4 text-center d-none d-lg-block">
+    <h4 class="text-white fw-bold"><i class="fa-solid fa-heart-pulse text-danger me-2"></i>Health AI</h4>
+    <p class="text-muted small">Data Warehouse System</p>
+</div>
+<ul class="nav flex-column mb-auto">
+    <li class="nav-item">
+        <a href="{% url 'dashboard_home' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_home' %}active{% endif %}">
+            <i class="fa-solid fa-chart-pie me-2"></i> Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'etl_status' %}" class="nav-link {% if request.resolver_match.url_name == 'etl_status' %}active{% endif %}">
+            <i class="fa-solid fa-arrows-spin me-2"></i> ETL Pipeline
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'warehouse_schema' %}" class="nav-link {% if request.resolver_match.url_name == 'warehouse_schema' %}active{% endif %}">
+            <i class="fa-solid fa-database me-2"></i> Data Warehouse
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'olap_analytics' %}" class="nav-link {% if request.resolver_match.url_name == 'olap_analytics' %}active{% endif %}">
+            <i class="fa-solid fa-cubes me-2"></i> OLAP Analytics
+        </a>
+    </li>
+    <hr class="border-secondary my-2">
+    <li class="nav-item">
+        <a href="{% url 'predict' %}" class="nav-link {% if request.resolver_match.url_name == 'predict' %}active{% endif %}">
+            <i class="fa-solid fa-stethoscope me-2"></i> Prediction
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'model_comparison' %}" class="nav-link {% if request.resolver_match.url_name == 'model_comparison' %}active{% endif %}">
+            <i class="fa-solid fa-scale-balanced me-2"></i> Model Comparison
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'clustering' %}" class="nav-link {% if request.resolver_match.url_name == 'clustering' %}active{% endif %}">
+            <i class="fa-solid fa-circle-nodes me-2"></i> Clustering
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'association_rules' %}" class="nav-link {% if request.resolver_match.url_name == 'association_rules' %}active{% endif %}">
+            <i class="fa-solid fa-link me-2"></i> Association Rules
+        </a>
+    </li>
+    <hr class="border-secondary my-2">
+    <li class="nav-item">
+        <a href="{% url 'batch_predict' %}" class="nav-link {% if request.resolver_match.url_name == 'batch_predict' %}active{% endif %}">
+            <i class="fa-solid fa-file-csv me-2"></i> Batch Analysis
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'prediction_history' %}" class="nav-link {% if request.resolver_match.url_name == 'prediction_history' %}active{% endif %}">
+            <i class="fa-solid fa-clock-rotate-left me-2"></i> History
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'system_info' %}" class="nav-link {% if request.resolver_match.url_name == 'system_info' %}active{% endif %}">
+            <i class="fa-solid fa-gear me-2"></i> System Info
+        </a>
+    </li>
+</ul>
+<hr class="border-secondary">
+<div class="dropdown">
+    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+        <div class="avatar-circle me-2">{{ user.username|first|upper }}</div>
+        <strong>{{ user.username }}</strong>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
+        <li><a class="dropdown-item" href="/admin/">Admin Panel</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item">Sign out</button>
+            </form>
+        </li>
+    </ul>
+</div>

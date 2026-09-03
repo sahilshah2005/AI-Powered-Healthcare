@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}ETL Pipeline — AI Healthcare{% endblock %}
+
+{% block content %}
+<div class="container-fluid animate-fade-in">
+    <h2 class="fw-bold mb-4"><i class="fa-solid fa-arrows-spin text-primary me-2"></i>ETL Pipeline Status</h2>
+
+    {% if latest_log %}
+    <!-- Latest Run Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted mb-1">Records Extracted</h6>
+                <h3 class="fw-bold text-primary mb-0">{{ latest_log.records_extracted }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted mb-1">Records Loaded</h6>
+                <h3 class="fw-bold text-success mb-0">{{ latest_log.records_loaded }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted mb-1">Missing Handled</h6>
+                <h3 class="fw-bold text-warning mb-0">{{ latest_log.missing_values_handled }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted mb-1">Duration</h6>
+                <h3 class="fw-bold mb-0">{{ latest_log.duration_seconds }}s</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Quality Report -->
+    {% if quality_report %}
+    <div class="glass-card p-4 mb-4">
+        <h5 class="fw-bold mb-3">Data Quality Report (Latest Run)</h5>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td class="text-muted">Total Records</td><td class="fw-bold">{{ quality_report.total_records }}</td></tr>
+                        <tr><td class="text-muted">Valid Records</td><td class="fw-bold text-success">{{ quality_report.valid_records }}</td></tr>
+                        <tr><td class="text-muted">Invalid Records</td><td class="fw-bold {% if quality_report.invalid_records > 0 %}text-warning{% endif %}">{{ quality_report.invalid_records }}</td></tr>
+                        <tr><td class="text-muted">Duplicate Rows</td><td class="fw-bold">{{ quality_report.duplicates }}</td></tr>
+                        <tr><td class="text-muted">Column Count</td><td class="fw-bold">{{ quality_report.column_count }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted mb-2">Missing Values</h6>
+                {% if quality_report.missing_values %}
+                    {% for col, count in quality_report.missing_values.items %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary">{{ col }}</span>
+                        <span class="text-warning fw-bold">{{ count }} missing</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success"><i class="fa-solid fa-check-circle me-1"></i>No missing values</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Warehouse Statistics -->
+    <div class="glass-card p-4 mb-4">
+        <h5 class="fw-bold mb-3">Current Warehouse Statistics</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="p-3 rounded-3 border border-primary bg-primary bg-opacity-10">
+                    <h6 class="text-muted mb-1">Fact Records</h6>
+                    <h4 class="fw-bold mb-0">{{ total_facts }}</h4>
+                </div>
+            </div>
+            {% for name, count in dim_stats.items %}
+            <div class="col-md-3">
+                <div class="p-3 rounded-3 border border-secondary bg-dark bg-opacity-25">
+                    <h6 class="text-muted mb-1">{{ name|title }}</h6>
+                    <h4 class="fw-bold mb-0">{{ count }}</h4>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ETL Execution History -->
+    <div class="glass-card p-4">
+        <h5 class="fw-bold mb-3">ETL Execution History</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Batch ID</th>
+                        <th>Status</th>
+                        <th>Extracted</th>
+                        <th>Loaded</th>
+                        <th>Duration</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in etl_logs %}
+                    <tr>
+                        <td><code>{{ log.batch_id }}</code></td>
+                        <td>
+                            <span class="badge {% if log.status == 'SUCCESS' %}bg-success{% elif log.status == 'FAILED' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ log.status }}
+                            </span>
+                        </td>
+                        <td>{{ log.records_extracted }}</td>
+                        <td>{{ log.records_loaded }}</td>
+                        <td>{{ log.duration_seconds }}s</td>
+                        <td>{{ log.started_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-database fs-1 mb-3 opacity-50 d-block"></i>
+                            No ETL runs recorded. Run: <code>python manage.py run_etl</code>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-4 text-muted small">
+        <p><i class="fa-solid fa-terminal me-1"></i> Run ETL: <code>python manage.py run_etl --force</code></p>
+    </div>
+</div>
+{% endblock %}

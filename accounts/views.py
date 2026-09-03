@@ -4,6 +4,8 @@ from django.contrib.auth import login
 from django.contrib import messages
 
 def register(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard_home')
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():

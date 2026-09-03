@@ -2,5 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.mining_dashboard, name='mining_dashboard'),
+    path('clustering/', views.clustering_view, name='clustering'),
+    path('association-rules/', views.association_rules_view, name='association_rules'),
 ]

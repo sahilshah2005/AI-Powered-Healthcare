@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-light">OLAP Analytics Dashboard</h2>
+    
+    <!-- Filter Panel (SLICE & DICE) -->
+    <div class="glass-card p-4 mb-4">
+        <h5 class="text-light mb-3">Slice & Dice (Filters)</h5>
+        <form method="GET" action="" class="row g-3">
+            <div class="col-md-2">
+                <select name="age_group" class="form-select">
+                    <option value="">All Ages</option>
+                    {% for opt in options.age_groups %}
+                    <option value="{{ opt }}" {% if filters.age_group == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sex" class="form-select">
+                    <option value="">All Genders</option>
+                    {% for opt in options.genders %}
+                    <option value="{{ opt }}" {% if filters.sex == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="cp_type" class="form-select">
+                    <option value="">All Chest Pain Types</option>
+                    {% for opt in options.cp_types %}
+                    <option value="{{ opt }}" {% if filters.cp_type == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="target" class="form-select">
+                    <option value="">All Targets</option>
+                    <option value="true" {% if filters.target == "true" %}selected{% endif %}>Heart Disease</option>
+                    <option value="false" {% if filters.target == "false" %}selected{% endif %}>Normal</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="chol_category" class="form-select">
+                    <option value="">All Cholesterol</option>
+                    {% for opt in options.chol_categories %}
+                    <option value="{{ opt }}" {% if filters.chol_category == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+        </form>
+
+        <div class="mt-3">
+            <span class="text-muted me-2">Active Filters:</span>
+            {% for key, val in filters.items %}
+                {% if val %}
+                <span class="badge bg-primary me-1">{{ key }}: {{ val }}</span>
+                {% endif %}
+            {% endfor %}
+            {% if not filters.values|join:'' %}
+                <span class="badge bg-secondary">None (Viewing All Data)</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted">Total Records</h6>
+                <h3 class="text-light">{{ total_records }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted">Avg Age</h6>
+                <h3 class="text-light">{{ summary_stats.avg_age|floatformat:1 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted">Avg Cholesterol</h6>
+                <h3 class="text-light">{{ summary_stats.avg_chol|floatformat:1 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h6 class="text-muted">Avg Max HR</h6>
+                <h3 class="text-light">{{ summary_stats.avg_thalach|floatformat:1 }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROLL-UP -->
+    <div class="glass-card p-4 mb-4">
+        <h4 class="text-light mb-2">Roll-Up View (Aggregated by Age Group)</h4>
+        <p class="text-muted mb-3">Roll-up demonstrates aggregating data along the dimension hierarchy (e.g., from individual patients to age groups).</p>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Age Group</th>
+                                <th>Count</th>
+                                <th>Avg Chol</th>
+                                <th>Avg BP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rollup_data %}
+                            <tr>
+                                <td>{{ row.group }}</td>
+                                <td>{{ row.count }}</td>
+                                <td>{{ row.avg_chol|floatformat:1 }}</td>
+                                <td>{{ row.avg_bp|floatformat:1 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <canvas id="rollupChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRILL-DOWN -->
+    <div class="glass-card p-4">
+        <h4 class="text-light mb-2">Drill-Down View (Detailed clinical breakdown)</h4>
+        <p class="text-muted mb-3">Drill-down demonstrates stepping down the concept hierarchy to view more granular details (e.g., age group -> gender -> chest pain type).</p>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Age Group</th>
+                        <th>Gender</th>
+                        <th>Chest Pain Type</th>
+                        <th>Total Patients</th>
+                        <th>Heart Disease Cases</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in drilldown_data %}
+                    <tr>
+                        <td>{{ row.age_group_name }}</td>
+                        <td>{{ row.gender_name }}</td>
+                        <td>{{ row.cp_name }}</td>
+                        <td>{{ row.count }}</td>
+                        <td>
+                            {{ row.target_true_count }} 
+                            <span class="text-muted">({% widthratio row.target_true_count row.count 100 %}%)</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{ rollup_data|json_script:"rollup-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const rollupData = JSON.parse(document.getElementById('rollup-data').textContent);
+        
+        if (rollupData && rollupData.length > 0) {
+            const labels = rollupData.map(d => d.group);
+            const counts = rollupData.map(d => d.count);
+            
+            new Chart(document.getElementById('rollupChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Patient Count by Age Group',
+                        data: counts,
+                        backgroundColor: 'rgba(14, 165, 233, 0.7)',
+                        borderColor: '#0ea5e9',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { ticks: { color: '#94a3b8' } },
+                        x: { ticks: { color: '#94a3b8' } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#f8fafc' } }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

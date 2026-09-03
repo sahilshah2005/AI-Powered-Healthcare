@@ -2,86 +2,125 @@
 {% load widget_tweaks %}
 
 {% block content %}
-<div class="container-fluid animate-fade-in">
-    <div class="row g-4">
-        <!-- Prediction Form -->
-        <div class="col-lg-6">
+<div class="container mt-4">
+    <div class="row">
+        <!-- Form Column -->
+        <div class="col-md-6 mb-4">
             <div class="glass-card p-4">
-                <h4 class="fw-bold mb-4"><i class="fa-solid fa-stethoscope text-primary me-2"></i>Patient Profiling</h4>
+                <h3 class="mb-4" style="color: var(--text-light);">Heart Disease Prediction</h3>
                 
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
                 <form method="post">
                     {% csrf_token %}
-                    <div class="row g-3">
+                    <div class="row">
                         {% for field in form %}
-                            <div class="col-md-6">
-                                <label class="form-label">{{ field.label }}</label>
-                                {{ field|add_class:"form-control" }}
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label" style="color: var(--text-muted);">{{ field.label }}</label>
+                                {% render_field field class="form-control bg-dark text-light border-secondary" %}
+                                {% if field.errors %}
+                                    <div class="text-danger small mt-1">{{ field.errors|join:", " }}</div>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary w-100 btn-lg"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Predict Risk</button>
-                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3" style="background-color: var(--primary); border: none;">Predict</button>
                 </form>
             </div>
         </div>
-        
-        <!-- Results -->
-        <div class="col-lg-6">
-            {% if prediction %}
-            <div class="glass-card p-4 h-100 animate-fade-in">
-                <h4 class="fw-bold mb-4">Prediction Results</h4>
-                
-                <div class="text-center p-4 rounded-3 mb-4 {% if prediction == 'High Risk' %}bg-danger bg-opacity-25{% else %}bg-success bg-opacity-25{% endif %}">
-                    <h1 class="display-4 fw-bold {% if prediction == 'High Risk' %}text-danger{% else %}text-success{% endif %}">
-                        {{ prediction }}
-                    </h1>
-                    <p class="mb-0 fs-5">Probability: <strong>{{ probability }}%</strong></p>
+
+        <!-- Result Column -->
+        <div class="col-md-6">
+            {% if prediction_label %}
+                <div class="glass-card p-4">
+                    <h3 class="mb-4" style="color: var(--text-light);">Prediction Result</h3>
+                    
+                    <div class="text-center mb-4">
+                        {% if 'Higher' in prediction_label %}
+                            <div class="display-4 text-danger mb-2"><i class="fas fa-exclamation-triangle"></i></div>
+                            <h4 class="text-danger">{{ prediction_label }}</h4>
+                        {% else %}
+                            <div class="display-4 text-success mb-2"><i class="fas fa-check-circle"></i></div>
+                            <h4 class="text-success">{{ prediction_label }}</h4>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <span class="badge bg-secondary p-2 me-2">Probability: {{ probability }}%</span>
+                            <span class="badge bg-info p-2 text-dark">Model: {{ model_used }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if feature_importance %}
+                        <h5 class="mt-4 mb-3" style="color: var(--text-light);">Feature Importance</h5>
+                        <canvas id="featureChart" width="400" height="250"></canvas>
+                        {{ feature_importance|json_script:"feature-data" }}
+                    {% endif %}
+                    
+                    <div class="alert alert-warning mt-4 small bg-dark text-warning border-warning">
+                        <i class="fas fa-info-circle me-2"></i>This prediction is for educational/analytical purposes only and should not be treated as medical diagnosis.
+                    </div>
                 </div>
-                
-                {% if feature_importance %}
-                <h5 class="fw-bold mt-5 mb-3">Explainable AI (Feature Importance)</h5>
-                <canvas id="importanceChart" height="150"></canvas>
-                
-                <script>
-                    const fiData = JSON.parse('{{ feature_importance|safe }}');
-                    const ctxFI = document.getElementById('importanceChart').getContext('2d');
-                    new Chart(ctxFI, {
-                        type: 'bar',
-                        data: {
-                            labels: fiData.labels,
-                            datasets: [{
-                                label: 'Importance (%)',
-                                data: fiData.data,
-                                backgroundColor: 'rgba(14, 165, 233, 0.8)',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            indexAxis: 'y',
-                            responsive: true,
-                            scales: {
-                                x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
-                                y: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-                            },
-                            plugins: { legend: { display: false } }
-                        }
-                    });
-                </script>
-                {% else %}
-                <div class="alert alert-info">
-                    <i class="fa-solid fa-circle-info me-2"></i> Feature importance is not available for Naive Bayes. Select Decision Tree or Logistic Regression to view Explainable AI insights.
-                </div>
-                {% endif %}
-            </div>
             {% else %}
-            <div class="glass-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-muted">
-                <i class="fa-solid fa-robot fs-1 mb-3 opacity-50"></i>
-                <h5>Awaiting Data</h5>
-                <p>Fill out the form and submit to see AI predictions and feature importance.</p>
-            </div>
+                <div class="glass-card p-4 d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    <div class="text-center" style="color: var(--text-muted);">
+                        <i class="fas fa-heartbeat fa-4x mb-3"></i>
+                        <h4>Fill the form to see prediction</h4>
+                    </div>
+                </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+{% if feature_importance %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const featureData = JSON.parse(document.getElementById('feature-data').textContent);
+        const ctx = document.getElementById('featureChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: featureData.labels,
+                datasets: [{
+                    label: 'Importance (%)',
+                    data: featureData.data,
+                    backgroundColor: 'rgba(14, 165, 233, 0.7)',
+                    borderColor: 'rgba(14, 165, 233, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
 {% endblock %}
