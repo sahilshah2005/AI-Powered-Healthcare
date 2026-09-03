@@ -1,81 +1,102 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-import joblib
 import os
 import json
+import joblib
+import pandas as pd
 from django.core.management.base import BaseCommand
-from etl.models import PatientFact
+from django.conf import settings
+
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 
 class Command(BaseCommand):
-    help = 'Train and save Machine Learning models'
+    help = 'Train and save Machine Learning models directly from CSV'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write(self.style.SUCCESS('Fetching data from Data Warehouse...'))
+        data_path = os.path.join(settings.DATASET_DIR, 'heart_disease.csv')
         
-        # Extract data from DB
-        facts = PatientFact.objects.select_related('gender', 'cp_type', 'rest_ecg').all()
-        if not facts:
-            self.stdout.write(self.style.ERROR('No data found in PatientFact. Please run ETL first.'))
+        self.stdout.write(self.style.SUCCESS(f'Reading data from {data_path}...'))
+        
+        if not os.path.exists(data_path):
+            self.stdout.write(self.style.ERROR(f'Dataset not found at {data_path}'))
             return
-
-        data = []
-        for f in facts:
-            data.append({
-                'age': f.age,
-                'sex': 1 if f.gender.gender_name == 'Male' else 0,
-                'cp': list(PatientFact.objects.filter(cp_type=f.cp_type).values_list('cp_type_id', flat=True))[0], # using DB ID as proxy, but ideally should be exactly what's on the form
-                'trestbps': f.trestbps,
-                'chol': f.chol,
-                'fbs': 1 if f.fbs else 0,
-                'restecg': f.rest_ecg.id, # proxy encoding
-                'thalach': f.thalach,
-                'exang': 1 if f.exang else 0,
-                'oldpeak': f.oldpeak,
-                'slope': f.slope,
-                'ca': f.ca,
-                'thal': f.thal,
-                'target': 1 if f.target else 0
-            })
             
-        df = pd.DataFrame(data)
+        df = pd.read_csv(data_path)
         
-        # Let's fix the proxy encodings to just match the form (1,2,3, etc).
-        # To avoid complex mappings, we'll just train on whatever integers these are.
-        # But wait, cp and restecg IDs might not be 0-3. We'll use pandas factorize to be safe or just use the IDs.
-        # It's better to just use the IDs.
+        # Handle missing values
+        df['chol'] = df['chol'].fillna(df['chol'].mean())
+        df['thalach'] = df['thalach'].fillna(df['thalach'].mean())
         
-        X = df.drop('target', axis=1)
+        features = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
+        X = df[features]
         y = df['target']
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Stratified split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
         
         models = {
+            'LogisticRegression': LogisticRegression(max_iter=1000, random_state=42),
             'DecisionTree': DecisionTreeClassifier(random_state=42),
-            'NaiveBayes': GaussianNB(),
-            'LogisticRegression': LogisticRegression(max_iter=1000, random_state=42)
+            'GaussianNB': GaussianNB(),
+            'RandomForestClassifier': RandomForestClassifier(random_state=42, n_estimators=100)
         }
+        
+        models_dir = os.path.join(settings.BASE_DIR, 'models')
+        os.makedirs(models_dir, exist_ok=True)
         
         results = {}
         
-        for name, model in models.items():
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        
+        for name, clf in models.items():
             self.stdout.write(f'Training {name}...')
-            model.fit(X_train, y_train)
             
-            y_pred = model.predict(X_test)
+            pipeline = Pipeline([
+                ('scaler', StandardScaler()),
+                ('classifier', clf)
+            ])
+            
+            # Cross validation
+            cv_scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy')
+            
+            pipeline.fit(X_train, y_train)
+            y_pred = pipeline.predict(X_test)
+            
+            if hasattr(pipeline, "predict_proba"):
+                y_prob = pipeline.predict_proba(X_test)[:, 1]
+                roc_auc = roc_auc_score(y_test, y_prob)
+            else:
+                roc_auc = roc_auc_score(y_test, y_pred)
+                
             acc = accuracy_score(y_test, y_pred)
-            results[name] = round(acc * 100, 2)
+            prec = precision_score(y_test, y_pred)
+            rec = recall_score(y_test, y_pred)
+            f1 = f1_score(y_test, y_pred)
+            cm = confusion_matrix(y_test, y_pred).tolist()
             
-            # Save the model
-            model_path = os.path.join('models', f'{name}.pkl')
-            joblib.dump(model, model_path)
-            self.stdout.write(self.style.SUCCESS(f'{name} trained! Accuracy: {results[name]}%'))
+            results[name] = {
+                'accuracy': round(acc * 100, 2),
+                'precision': round(prec * 100, 2),
+                'recall': round(rec * 100, 2),
+                'f1_score': round(f1 * 100, 2),
+                'roc_auc': round(roc_auc * 100, 2),
+                'confusion_matrix': cm,
+                'cv_mean': round(cv_scores.mean() * 100, 2),
+                'cv_std': round(cv_scores.std() * 100, 2)
+            }
             
-        # Save results for dashboard
-        with open(os.path.join('models', 'accuracies.json'), 'w') as f:
-            json.dump(results, f)
+            model_path = os.path.join(models_dir, f'{name}.pkl')
+            joblib.dump(pipeline, model_path)
             
-        self.stdout.write(self.style.SUCCESS('All models trained and saved successfully!'))
+            self.stdout.write(self.style.SUCCESS(f'{name} trained! Accuracy: {results[name]["accuracy"]}%'))
+            
+        metrics_path = os.path.join(models_dir, 'model_metrics.json')
+        with open(metrics_path, 'w') as f:
+            json.dump(results, f, indent=4)
+            
+        self.stdout.write(self.style.SUCCESS(f'All models trained. Metrics saved to {metrics_path}'))

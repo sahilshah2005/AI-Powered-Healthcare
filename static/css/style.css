@@ -10,6 +10,7 @@
     --danger: #ef4444;
     --success: #10b981;
     --warning: #f59e0b;
+    --purple: #a855f7;
 }
 
 body {
@@ -46,14 +47,16 @@ body {
     background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(16px);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     z-index: 100;
+    overflow-y: auto;
 }
 
 .sidebar .nav-link {
     color: var(--text-muted);
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1.25rem;
     font-weight: 500;
+    font-size: 0.9rem;
     transition: all 0.2s;
     border-left: 3px solid transparent;
 }
@@ -65,13 +68,39 @@ body {
 }
 
 .sidebar .nav-link i {
-    width: 24px;
+    width: 22px;
+}
+
+.sidebar-offcanvas {
+    background: rgba(15, 23, 42, 0.95) !important;
+    backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    width: 280px !important;
+}
+
+.mobile-nav {
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .main-content {
     margin-left: 250px;
     padding: 2rem;
     min-height: 100vh;
+}
+
+/* Local User Initials Avatar */
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    background-color: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.85rem;
 }
 
 /* Custom Forms */
@@ -131,6 +160,7 @@ body {
 .kpi-blue { background: rgba(14, 165, 233, 0.2); color: var(--primary); }
 .kpi-red { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
 .kpi-green { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+.kpi-purple { background: rgba(168, 85, 247, 0.2); color: var(--purple); }
 
 /* Animation */
 @keyframes fadeIn {
@@ -156,4 +186,12 @@ body {
 .table thead th {
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     color: var(--text-muted);
+}
+
+/* Responsive Styles */
+@media (max-width: 991.98px) {
+    .main-content {
+        margin-left: 0;
+        padding: 1.25rem;
+    }
 }

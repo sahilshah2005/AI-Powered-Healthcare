@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}System Information — AI Healthcare{% endblock %}
+
+{% block content %}
+<div class="container-fluid animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0"><i class="fa-solid fa-server text-primary me-2"></i>System Information &amp; Architecture</h2>
+        <span class="badge bg-success py-2 px-3"><i class="fa-solid fa-check-circle me-1"></i>Operational</span>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Runtime & Environment Card -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-microchip text-info me-2"></i>Platform &amp; Environment</h5>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td class="text-muted">Django Version</td><td class="fw-bold">{{ django_version }}</td></tr>
+                        <tr><td class="text-muted">Scikit-Learn Version</td><td class="fw-bold">{{ sklearn_version }}</td></tr>
+                        <tr><td class="text-muted">Database Engine</td><td class="fw-bold text-uppercase"><span class="badge bg-secondary">{{ db_engine }}</span></td></tr>
+                        <tr><td class="text-muted">Python Version</td><td class="small">{{ python_version|truncatechars:60 }}</td></tr>
+                        <tr><td class="text-muted">Data Warehouse Pattern</td><td class="fw-bold text-primary">Dimensional Star Schema</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Dataset Metadata Card -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-csv text-warning me-2"></i>Dataset Profile</h5>
+                {% if dataset_info.exists %}
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td class="text-muted">Source Filename</td><td class="fw-bold"><code>{{ dataset_info.filename }}</code></td></tr>
+                        <tr><td class="text-muted">Record Count</td><td class="fw-bold text-success">{{ dataset_info.rows }} rows</td></tr>
+                        <tr><td class="text-muted">Total Attributes</td><td class="fw-bold">{{ dataset_info.columns }} columns</td></tr>
+                        <tr><td class="text-muted">Missing Values Identified</td><td class="fw-bold text-warning">{{ dataset_info.missing_values }} null cells</td></tr>
+                        <tr><td class="text-muted">File Size</td><td class="fw-bold">{{ dataset_info.file_size_kb }} KB</td></tr>
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-danger mb-0">Dataset file not located in repository <code>dataset/</code> directory.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Warehouse & ETL Metrics -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-database text-primary me-2"></i>Warehouse Entities (Star Schema)</h5>
+                <ul class="list-group list-group-flush bg-transparent">
+                    <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                        <span><strong>PatientFact</strong> (Central Fact Table)</span>
+                        <span class="badge bg-primary rounded-pill">{{ warehouse_stats.total_facts }} facts</span>
+                    </li>
+                    {% for dim, count in warehouse_stats.dimensions.items %}
+                    <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                        <span class="text-muted">{{ dim }}</span>
+                        <span class="badge bg-secondary rounded-pill">{{ count }} items</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-arrows-spin text-success me-2"></i>ETL Pipeline State</h5>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td class="text-muted">Total Batches Executed</td><td class="fw-bold">{{ etl_count }}</td></tr>
+                        {% if latest_etl %}
+                        <tr><td class="text-muted">Latest Batch ID</td><td class="fw-bold"><code>{{ latest_etl.batch_id }}</code></td></tr>
+                        <tr><td class="text-muted">Latest Run Status</td><td><span class="badge {% if latest_etl.status == 'SUCCESS' %}bg-success{% else %}bg-danger{% endif %}">{{ latest_etl.status }}</span></td></tr>
+                        <tr><td class="text-muted">Loaded Facts</td><td class="fw-bold">{{ latest_etl.records_loaded }}</td></tr>
+                        <tr><td class="text-muted">Execution Duration</td><td class="fw-bold">{{ latest_etl.duration_seconds }} s</td></tr>
+                        <tr><td class="text-muted">Executed At</td><td class="small">{{ latest_etl.started_at|date:"Y-m-d H:i:s" }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-muted">No ETL runs logged yet.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Mining & Machine Learning Capabilities -->
+    <div class="glass-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="fa-solid fa-brain text-info me-2"></i>Active Data Mining &amp; ML Models</h5>
+        <div class="row g-3">
+            {% for cat in mining_techniques %}
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 border border-secondary bg-dark bg-opacity-25 h-100">
+                    <h6 class="fw-bold text-light mb-2">{{ cat.name }}</h6>
+                    <ul class="list-unstyled mb-0 small text-muted">
+                        {% for alg in cat.algorithms %}
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-1"></i> {{ alg }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if model_files %}
+        <div class="mt-4 pt-3 border-top border-secondary">
+            <h6 class="text-muted mb-2">Persisted Model Pipelines (<code>.pkl</code> artifacts):</h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% for file in model_files %}
+                <span class="badge bg-secondary py-2 px-3"><i class="fa-solid fa-box me-1"></i> {{ file }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

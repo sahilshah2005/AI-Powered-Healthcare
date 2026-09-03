@@ -1,126 +1,210 @@
 {% extends 'base.html' %}
+{% block title %}Dashboard — AI Healthcare{% endblock %}
 
 {% block content %}
 <div class="container-fluid animate-fade-in">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="fw-bold mb-0">Analytics Dashboard</h2>
         <a href="{% url 'predict' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Prediction</a>
     </div>
 
     <!-- KPIs -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
             <div class="glass-card p-4 d-flex align-items-center">
-                <div class="kpi-icon kpi-blue me-3">
-                    <i class="fa-solid fa-users"></i>
-                </div>
+                <div class="kpi-icon kpi-blue me-3"><i class="fa-solid fa-users"></i></div>
                 <div>
-                    <h6 class="text-muted mb-1">Total Warehouse Records</h6>
+                    <h6 class="text-muted mb-1">Total Records</h6>
                     <h3 class="fw-bold mb-0">{{ total_patients }}</h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-xl-3 col-md-6">
             <div class="glass-card p-4 d-flex align-items-center">
-                <div class="kpi-icon kpi-red me-3">
-                    <i class="fa-solid fa-heart-crack"></i>
-                </div>
+                <div class="kpi-icon kpi-red me-3"><i class="fa-solid fa-heart-crack"></i></div>
                 <div>
-                    <h6 class="text-muted mb-1">High Risk Patients</h6>
-                    <h3 class="fw-bold mb-0">{{ high_risk_patients }}</h3>
+                    <h6 class="text-muted mb-1">Positive Cases</h6>
+                    <h3 class="fw-bold mb-0">{{ high_risk_patients }} <span class="fs-6 fw-normal text-muted">({{ risk_percentage }}%)</span></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-xl-3 col-md-6">
             <div class="glass-card p-4 d-flex align-items-center">
-                <div class="kpi-icon kpi-green me-3">
-                    <i class="fa-solid fa-server"></i>
+                <div class="kpi-icon kpi-green me-3"><i class="fa-solid fa-shield-heart"></i></div>
+                <div>
+                    <h6 class="text-muted mb-1">Negative Cases</h6>
+                    <h3 class="fw-bold mb-0">{{ low_risk_patients }}</h3>
                 </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="glass-card p-4 d-flex align-items-center">
+                <div class="kpi-icon kpi-purple me-3"><i class="fa-solid fa-server"></i></div>
                 <div>
                     <h6 class="text-muted mb-1">ETL Status</h6>
-                    <h3 class="fw-bold mb-0">Up-to-date</h3>
+                    <p class="fw-semibold mb-0 small">{{ etl_status }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts -->
-    <div class="row g-4">
-        <!-- Age vs Risk Chart -->
-        <div class="col-md-8">
+    <!-- Charts Row 1 -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
             <div class="glass-card p-4 h-100">
                 <h5 class="fw-bold mb-4">Risk Distribution by Age Group</h5>
                 <canvas id="ageChart" height="100"></canvas>
             </div>
         </div>
-        <!-- Model Accuracy Comparison -->
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <div class="glass-card p-4 h-100">
                 <h5 class="fw-bold mb-4">ML Models Accuracy</h5>
+                {% if accuracies %}
                 <canvas id="accChart" height="200"></canvas>
+                <p class="text-muted small mt-3 text-center"><i class="fa-solid fa-trophy text-warning me-1"></i>Best Model: <strong>{{ best_model }}</strong></p>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fa-solid fa-robot fs-1 mb-3 opacity-50"></i>
+                    <p>No models trained yet.<br>Run <code>python manage.py train_models</code></p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-4">Gender Distribution</h5>
+                <canvas id="genderChart" height="120"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-4">Chest Pain Type Distribution</h5>
+                <canvas id="cpChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clinical Stats -->
+    {% if clinical_stats %}
+    <div class="glass-card p-4">
+        <h5 class="fw-bold mb-4">Clinical Summary Statistics</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="p-3 rounded-3 border border-secondary bg-dark bg-opacity-25">
+                    <h6 class="text-muted mb-1">Avg Age</h6>
+                    <h4 class="fw-bold mb-0">{{ clinical_stats.avg_age|floatformat:1 }} <span class="fs-6 fw-normal text-muted">years</span></h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 rounded-3 border border-secondary bg-dark bg-opacity-25">
+                    <h6 class="text-muted mb-1">Avg Cholesterol</h6>
+                    <h4 class="fw-bold mb-0">{{ clinical_stats.avg_chol|floatformat:1 }} <span class="fs-6 fw-normal text-muted">mg/dl</span></h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 rounded-3 border border-secondary bg-dark bg-opacity-25">
+                    <h6 class="text-muted mb-1">Avg Blood Pressure</h6>
+                    <h4 class="fw-bold mb-0">{{ clinical_stats.avg_bp|floatformat:1 }} <span class="fs-6 fw-normal text-muted">mm Hg</span></h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 rounded-3 border border-secondary bg-dark bg-opacity-25">
+                    <h6 class="text-muted mb-1">Avg Heart Rate</h6>
+                    <h4 class="fw-bold mb-0">{{ clinical_stats.avg_hr|floatformat:1 }} <span class="fs-6 fw-normal text-muted">bpm</span></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
-<script>
-    const chartData = JSON.parse('{{ chart_data|safe }}');
-    
-    // Age Chart
-    const ctxAge = document.getElementById('ageChart').getContext('2d');
-    new Chart(ctxAge, {
-        type: 'bar',
-        data: {
-            labels: chartData.age_groups,
-            datasets: [
-                {
-                    label: 'High Risk (Heart Disease)',
-                    data: chartData.risk_by_age,
-                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                    borderRadius: 4
-                },
-                {
-                    label: 'Normal (Low Risk)',
-                    data: chartData.normal_by_age,
-                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                    borderRadius: 4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { stacked: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
-                x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } }
-            },
-            plugins: {
-                legend: { labels: { color: '#f8fafc' } }
-            }
-        }
-    });
+{{ chart_data|json_script:"chart-data" }}
 
-    // Accuracy Chart
-    const ctxAcc = document.getElementById('accChart').getContext('2d');
-    new Chart(ctxAcc, {
-        type: 'polarArea',
-        data: {
-            labels: chartData.model_names,
-            datasets: [{
-                data: chartData.model_accs,
-                backgroundColor: [
-                    'rgba(14, 165, 233, 0.7)',
-                    'rgba(16, 185, 129, 0.7)',
-                    'rgba(245, 158, 11, 0.7)'
-                ],
-                borderWidth: 1,
-                borderColor: '#1e293b'
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: { r: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' } } },
-            plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } }
-        }
-    });
+<script>
+    const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+    
+    // Age vs Risk Chart
+    if (chartData.age_groups.length > 0) {
+        new Chart(document.getElementById('ageChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: chartData.age_groups,
+                datasets: [
+                    { label: 'Heart Disease', data: chartData.risk_by_age, backgroundColor: 'rgba(239, 68, 68, 0.8)', borderRadius: 4 },
+                    { label: 'Normal', data: chartData.normal_by_age, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { stacked: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
+                    x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { labels: { color: '#f8fafc' } } }
+            }
+        });
+    }
+
+    // Model Accuracy Chart
+    if (chartData.model_names.length > 0) {
+        const colors = ['rgba(14,165,233,0.7)', 'rgba(16,185,129,0.7)', 'rgba(245,158,11,0.7)', 'rgba(168,85,247,0.7)'];
+        new Chart(document.getElementById('accChart').getContext('2d'), {
+            type: 'polarArea',
+            data: {
+                labels: chartData.model_names,
+                datasets: [{ data: chartData.model_accs, backgroundColor: colors.slice(0, chartData.model_names.length), borderWidth: 1, borderColor: '#1e293b' }]
+            },
+            options: {
+                responsive: true,
+                scales: { r: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' } } },
+                plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } }
+            }
+        });
+    }
+
+    // Gender Chart
+    if (chartData.gender_labels.length > 0) {
+        new Chart(document.getElementById('genderChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: chartData.gender_labels,
+                datasets: [
+                    { label: 'Heart Disease', data: chartData.gender_risk, backgroundColor: 'rgba(239, 68, 68, 0.8)', borderRadius: 4 },
+                    { label: 'Total', data: chartData.gender_total, backgroundColor: 'rgba(14, 165, 233, 0.3)', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { labels: { color: '#f8fafc' } } }
+            }
+        });
+    }
+
+    // Chest Pain Chart
+    if (chartData.cp_labels.length > 0) {
+        new Chart(document.getElementById('cpChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: chartData.cp_labels,
+                datasets: [{
+                    data: chartData.cp_total,
+                    backgroundColor: ['rgba(14,165,233,0.8)', 'rgba(16,185,129,0.8)', 'rgba(245,158,11,0.8)', 'rgba(239,68,68,0.8)'],
+                    borderWidth: 2, borderColor: '#1e293b'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } }
+            }
+        });
+    }
 </script>
 {% endblock %}
