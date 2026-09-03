@@ -147,23 +147,35 @@ def model_comparison(request):
 @login_required
 def batch_predict(request):
     results = None
+    
+    # Handle CSV download request from previously uploaded file cached in session
+    if request.method == 'POST' and request.POST.get('download'):
+        csv_data = request.session.get('last_batch_predictions')
+        if csv_data:
+            response = HttpResponse(csv_data, content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="batch_predictions.csv"'
+            return response
+        else:
+            messages.error(request, "No batch prediction session found. Please upload a file first.")
+            return render(request, 'prediction/batch.html')
+
     if request.method == 'POST' and request.FILES.get('csv_file'):
         csv_file = request.FILES['csv_file']
         if not csv_file.name.endswith('.csv'):
-            messages.error(request, "Please upload a CSV file.")
+            messages.error(request, "Please upload a valid CSV file.")
             return render(request, 'prediction/batch.html')
             
         try:
             df = pd.read_csv(csv_file)
-            # check columns
+            # Check required feature columns
             missing_cols = [col for col in FEATURE_COLUMNS if col not in df.columns]
             if missing_cols:
-                messages.error(request, f"Missing columns in CSV: {', '.join(missing_cols)}")
+                messages.error(request, f"Missing required columns in CSV: {', '.join(missing_cols)}")
                 return render(request, 'prediction/batch.html')
                 
-            model = get_model('RandomForestClassifier') # Default best model
+            model = get_model('RandomForestClassifier')
             if not model:
-                messages.error(request, "Model not found. Please train models first.")
+                messages.error(request, "Model pipeline not found. Please train models first.")
                 return render(request, 'prediction/batch.html')
                 
             X = df[FEATURE_COLUMNS]
@@ -171,24 +183,21 @@ def batch_predict(request):
             probs = model.predict_proba(X)[:, 1] if hasattr(model, 'predict_proba') else predictions
             
             df['prediction'] = predictions
-            df['probability'] = [round(p * 100, 2) for p in probs]
+            df['probability'] = [round(float(p) * 100, 2) for p in probs]
             df['prediction_label'] = df['prediction'].apply(lambda x: "Higher Likelihood" if x == 1 else "Lower Likelihood")
+            
+            # Cache CSV output in session for one-click download
+            request.session['last_batch_predictions'] = df.to_csv(index=False)
             
             results = {
                 'total': len(df),
-                'high_risk': len(df[df['prediction'] == 1]),
-                'low_risk': len(df[df['prediction'] == 0]),
-                'preview': df.head().to_dict('records')
+                'high_risk': int((df['prediction'] == 1).sum()),
+                'low_risk': int((df['prediction'] == 0).sum()),
+                'preview': df.head(10).to_dict('records')
             }
-            
-            # Allow download
-            if request.POST.get('download'):
-                response = HttpResponse(content_type='text/csv')
-                response['Content-Disposition'] = 'attachment; filename="batch_predictions.csv"'
-                df.to_csv(response, index=False)
-                return response
                 
         except Exception as e:
             messages.error(request, f"Error processing file: {str(e)}")
             
     return render(request, 'prediction/batch.html', {'results': results})
+
